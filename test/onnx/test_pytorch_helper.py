@@ -14,7 +14,6 @@ from test_pytorch_common import skipIfNoLapack
 class TestCaffe2Backend(unittest.TestCase):
 
     @skipIfNoLapack
-    @unittest.skip("test broken because Lapack was always missing.")
     def test_helper(self):
 
         class SuperResolutionNet(nn.Module):

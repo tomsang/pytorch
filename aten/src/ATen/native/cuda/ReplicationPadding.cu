@@ -735,7 +735,6 @@ Tensor& replication_pad1d_backward_out_cuda(
     const Tensor& input,
     IntArrayRef paddingSize)
 {
-  // See Note [Writing Nondeterministic Operations]
   // Nondeterministic because of atomicAdd usage
   globalContext().alertNotDeterministic("replication_pad1d_backward_out_cuda");
   replication_pad1d_backward_out_cuda_template(
@@ -748,7 +747,6 @@ Tensor replication_pad1d_backward_cuda(
     const Tensor& input,
     IntArrayRef paddingSize)
 {
-  // See Note [Writing Nondeterministic Operations]
   // Nondeterministic because of atomicAdd usage
   globalContext().alertNotDeterministic("replication_pad1d_backward_cuda");
   auto gradInput = at::zeros_like(input, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
@@ -783,7 +781,6 @@ Tensor& replication_pad2d_backward_out_cuda(
     const Tensor& input,
     IntArrayRef paddingSize)
 {
-  // See Note [Writing Nondeterministic Operations]
   // Nondeterministic because of atomicAdd usage
   globalContext().alertNotDeterministic("replication_pad2d_backward_out_cuda");
   replication_pad2d_backward_out_cuda_template(
@@ -796,7 +793,6 @@ Tensor replication_pad2d_backward_cuda(
     const Tensor& input,
     IntArrayRef paddingSize)
 {
-  // See Note [Writing Nondeterministic Operations]
   // Nondeterministic because of atomicAdd usage
   globalContext().alertNotDeterministic("replication_pad2d_backward_cuda");
   auto gradInput = at::zeros_like(input, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
@@ -831,7 +827,6 @@ Tensor& replication_pad3d_backward_out_cuda(
     const Tensor& input,
     IntArrayRef paddingSize)
 {
-  // See Note [Writing Nondeterministic Operations]
   // Nondeterministic because of atomicAdd usage
   globalContext().alertNotDeterministic("replication_pad3d_backward_out_cuda");
   replication_pad3d_backward_out_cuda_template(
@@ -844,7 +839,6 @@ Tensor replication_pad3d_backward_cuda(
     const Tensor& input,
     IntArrayRef paddingSize)
 {
-  // See Note [Writing Nondeterministic Operations]
   // Nondeterministic because of atomicAdd usage
   globalContext().alertNotDeterministic("replication_pad3d_backward_cuda");
   auto gradInput = at::zeros_like(input, LEGACY_CONTIGUOUS_MEMORY_FORMAT);

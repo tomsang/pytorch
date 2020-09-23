@@ -45,12 +45,11 @@ class Float16ConstantFillOp : public Operator<CPUContext> {
   vector<int64_t> shape_;
 };
 
-template <class Context>
-class Float16UniformFillOp : public Operator<Context> {
+class Float16UniformFillOp : public Operator<CPUContext> {
  public:
   template <class... Args>
   explicit Float16UniformFillOp(Args&&... args)
-      : Operator<Context>(std::forward<Args>(args)...),
+      : Operator<CPUContext>(std::forward<Args>(args)...),
         shape_(this->template GetRepeatedArgument<int64_t>("shape")),
         min_(this->template GetSingleArgument<float>("min", 0)),
         max_(this->template GetSingleArgument<float>("max", 1)) {
@@ -67,7 +66,7 @@ class Float16UniformFillOp : public Operator<Context> {
     }
   }
 
-  USE_OPERATOR_CONTEXT_FUNCTIONS;
+  USE_OPERATOR_FUNCTIONS(CPUContext);
   virtual ~Float16UniformFillOp() {}
 
   bool RunOnDevice() override;
@@ -76,8 +75,6 @@ class Float16UniformFillOp : public Operator<Context> {
   vector<int64_t> shape_;
   float min_;
   float max_;
-
-  Tensor temp_data_buffer_;
 };
 
 inline std::vector<TensorShape> Float16FillerTensorInference(

@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 from test_pytorch_common import TestCase, run_tests
 
 import torch
@@ -517,8 +518,8 @@ class TestUtilityFuns(TestCase):
         f = io.BytesIO()
 
         # run export in diagnose mode
-        graph, unsupported_ops = utils._find_missing_ops_onnx_export(model, (x,), f,
-                                                                     opset_version=9)
+        graph, unsupported_ops = torch.onnx._diagnose_export(model, (x,), f,
+                                                             opset_version=9)
         iter = graph.nodes()
         assert next(iter).kind() == "onnx::Constant"
         assert next(iter).kind() == "prim::Constant"

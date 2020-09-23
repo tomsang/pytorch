@@ -1,7 +1,7 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 import torch
 from torch.nn import Module
 from .observer import MovingAverageMinMaxObserver, HistogramObserver, MovingAveragePerChannelMinMaxObserver, _with_args
-import re
 
 class FakeQuantize(Module):
     r""" Simulate the quantize and dequantize operations in training time.
@@ -64,21 +64,23 @@ class FakeQuantize(Module):
 
     @torch.jit.export
     def enable_fake_quant(self, enabled=True):
-        # type: (bool) -> None
+        # type: (bool) -> FakeQuantize
         self.fake_quant_enabled[0] = 1 if enabled else 0
+        return self
 
     @torch.jit.export
     def disable_fake_quant(self):
-        self.enable_fake_quant(False)
+        return self.enable_fake_quant(False)
 
     @torch.jit.export
     def enable_observer(self, enabled=True):
-        # type: (bool) -> None
+        # type: (bool) -> FakeQuantize
         self.observer_enabled[0] = 1 if enabled else 0
+        return self
 
     @torch.jit.export
     def disable_observer(self):
-        self.enable_observer(False)
+        return self.enable_observer(False)
 
     @torch.jit.export
     def calculate_qparams(self):
@@ -155,29 +157,18 @@ default_histogram_fake_quant = FakeQuantize.with_args(observer=HistogramObserver
                                                       dtype=torch.quint8,
                                                       qscheme=torch.per_tensor_affine,
                                                       reduce_range=True)
-
-def _is_fake_quant_script_module(mod):
-    ''' Returns true if given mod is an instance of FakeQuantize script module.
-    '''
-    if isinstance(mod, torch.jit.RecursiveScriptModule):
-        # qualified name looks like '__torch__.torch.quantization.fake_quantize.___torch_mangle_2.FakeQuantize'
-        suffix = mod._c.qualified_name.split('.', 1)[1]
-        name = re.sub(r'\.___torch_mangle_\d+', '', suffix)
-        return name == 'torch.quantization.fake_quantize.FakeQuantize'
-    return False
-
 def disable_fake_quant(mod):
-    if type(mod) == FakeQuantize or _is_fake_quant_script_module(mod):
+    if type(mod) == FakeQuantize:
         mod.disable_fake_quant()
 
 def enable_fake_quant(mod):
-    if type(mod) == FakeQuantize or _is_fake_quant_script_module(mod):
+    if type(mod) == FakeQuantize:
         mod.enable_fake_quant()
 
 def disable_observer(mod):
-    if type(mod) == FakeQuantize or _is_fake_quant_script_module(mod):
+    if type(mod) == FakeQuantize:
         mod.disable_observer()
 
 def enable_observer(mod):
-    if type(mod) == FakeQuantize or _is_fake_quant_script_module(mod):
+    if type(mod) == FakeQuantize:
         mod.enable_observer()

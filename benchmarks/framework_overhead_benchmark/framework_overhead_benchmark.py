@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 from utils import ms_to_us, benchmark_module, BenchmarkConfig, ModuleConfig
 import argparse
 from C2Module import C2SimpleNet

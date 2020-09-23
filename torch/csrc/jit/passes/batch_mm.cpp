@@ -475,9 +475,7 @@ void BatchMM(std::shared_ptr<Graph>& graph) {
   EliminateDeadCode(graph);
   // It's possible that transpose rearrangements have created sequences of
   // consecutive transposes that didn't exist before.
-
-  // tensor type properties are not guaranteed to be correct
-  PeepholeOptimize(graph, /*disable_shape_peepholes*/ true);
+  PeepholeOptimize(graph);
 }
 
 } // namespace jit

@@ -63,12 +63,7 @@ class CudaAnalysis : public IRVisitor {
   std::vector<const Expr*> gpu_thread_extents_;
 };
 
-// An IRMutator that replaces binding loop options with Cuda metavars, and masks
-// statements blocks which should execute with less reach than the launch
-// parameter extent.
-//
-// We do this by segmenting each block into chunks which should have the same
-// execution parameters, then if those params differ from the max mask each dim.
+// An IRMutator that replaces binding loop options with Cuda metavars.
 class GPUMetaVarRewriter : public IRMutator {
  public:
   explicit GPUMetaVarRewriter(const CudaAnalysis* cuda_analysis)
@@ -79,9 +74,6 @@ class GPUMetaVarRewriter : public IRMutator {
     gpu_thread_vars_ = {new Var("threadIdx.x", kInt),
                         new Var("threadIdx.y", kInt),
                         new Var("threadIdx.z", kInt)};
-
-    current_block_reach_ = {new IntImm(1), new IntImm(1), new IntImm(1)};
-    current_thread_reach_ = {new IntImm(1), new IntImm(1), new IntImm(1)};
   }
 
   Stmt* mutate(const For* v) override;
@@ -104,40 +96,11 @@ class GPUMetaVarRewriter : public IRMutator {
   }
 
  private:
-  // When processing a block, stores the contents of each sub-segment.
-  class Segment {
-   public:
-    void reset(bool mask) {
-      stmts_.clear();
-      mask_ = mask;
-    }
-
-    bool empty() const {
-      return stmts_.empty();
-    }
-
-    std::vector<Stmt*>& stmts() {
-      return stmts_;
-    }
-    bool mask() {
-      return mask_;
-    }
-
-   private:
-    std::vector<Stmt*> stmts_;
-    bool mask_{true};
-  };
-
-  // Returns true if the current execution scope is equivalent to the launch
-  // parameters.
-  bool isFullExtent();
-
   std::vector<const Var*> gpu_block_vars_;
   std::vector<const Var*> gpu_thread_vars_;
 
-  std::vector<const Expr*> current_block_reach_;
-  std::vector<const Expr*> current_thread_reach_;
-
+  bool need_sync_ = false;
+  const Expr* last_thread_dim_ = nullptr;
   const CudaAnalysis* cuda_analysis_;
 };
 

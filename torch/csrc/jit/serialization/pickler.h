@@ -7,7 +7,6 @@
 #include <ATen/core/ivalue.h>
 #include <ATen/core/jit_type.h>
 #include <c10/util/ArrayRef.h>
-#include <torch/csrc/WindowsTorchApiMacro.h>
 #include <torch/csrc/utils/disallow_copy.h>
 
 namespace torch {
@@ -106,8 +105,7 @@ struct WriteableTensorData {
   }
 
  private:
-  friend TORCH_API WriteableTensorData
-  getWriteableTensorData(const at::Tensor& tensor);
+  friend WriteableTensorData getWriteableTensorData(const at::Tensor& tensor);
   at::Tensor tensor_;
   uint64_t size_;
 };
@@ -115,7 +113,7 @@ struct WriteableTensorData {
 void setTypeTags(bool state);
 bool getTypeTags();
 
-class TORCH_API Pickler {
+class Pickler {
   TH_DISALLOW_COPY_AND_ASSIGN(Pickler);
 
  public:
@@ -266,7 +264,7 @@ class TORCH_API Pickler {
 
 // returns a (tensor, record_size) for a tensor, converting it to a CPU tensor
 // if necessary
-TORCH_API WriteableTensorData getWriteableTensorData(const at::Tensor& tensor);
+WriteableTensorData getWriteableTensorData(const at::Tensor& tensor);
 
 // return the value of the tensor's storage pointer
 uint64_t getStorageKey(const at::Tensor& tensor);

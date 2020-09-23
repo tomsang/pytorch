@@ -18,8 +18,3 @@ Functions
 ---------
 
 .. autofunction:: fft
-.. autofunction:: ifft
-.. autofunction:: rfft
-.. autofunction:: irfft
-.. autofunction:: hfft
-.. autofunction:: ihfft

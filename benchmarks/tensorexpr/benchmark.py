@@ -8,14 +8,11 @@ import json
 
 
 class Benchmark(object):
-    def __init__(self, mode, device, dtype):
+    def __init__(self, mode, device):
         self.mode = mode
         self.deterministic = False
         self.device = device
-        self.dtype = dtype
         self.output_type = "stdout"
-        self.print_ir = False
-        self.print_kernel = False
         if mode == "both":
             self.requires_grad = True
         elif mode == "fwd":
@@ -86,14 +83,6 @@ class Benchmark(object):
         return None
 
     @staticmethod
-    def input_iterable():
-        """A benchmark child class should return true if it utilizes the input iter arg"""
-        return False
-
-    def dtype_to_bytes(self) :
-        return torch.tensor(0, dtype=self.dtype).element_size()
-
-    @staticmethod
     def default_configs():
         """return a list of defualt configs for this benchmark"""
         raise ValueError("this method should be reimplemented by subclass")
@@ -101,8 +90,8 @@ class Benchmark(object):
     def is_supported(self):
         return True
 
-    def rand(self, shape, device=None, dtype=None, requires_grad=False):
-        v = self.engine.rand(shape, device=device, dtype=dtype, requires_grad=requires_grad)
+    def rand(self, shape, device=None, requires_grad=False):
+        v = self.engine.rand(shape, device=device, requires_grad=requires_grad)
         if requires_grad:
             self.grad_variables.append(v)
         return v
@@ -120,34 +109,16 @@ class Benchmark(object):
             return self.forward(*self.inputs)
 
     def run(self, args):
-        self.print_ir = args.print_ir
-        if args.cuda_fuser == "old" :
-            torch._C._jit_override_can_fuse_on_gpu(True)
-            if args.print_kernel :
-                os.environ['PYTORCH_FUSION_DEBUG'] = '1'
-            return self.run_impl(True)
-        elif args.cuda_fuser == "te" :
-            torch._C._jit_set_texpr_fuser_enabled(True)
-            with cuda_pointwise_context(
-                args.cuda_pointwise_loop_levels,
-                args.cuda_pointwise_block_count,
-                args.cuda_pointwise_block_size,
-            ):
-                return self.run_impl(True)
-        elif args.cuda_fuser == "nvf" :
-            torch._C._jit_set_nvfuser_enabled(True)
-            torch._C._jit_set_profiling_executor(True)
-            torch._C._jit_set_profiling_mode(True)
-            torch._C._jit_override_can_fuse_on_cpu(False)
-            torch._C._jit_override_can_fuse_on_gpu(False)
-            torch._C._jit_set_bailout_depth(20)
-            if args.print_kernel :
-                os.environ['PYTORCH_CUDA_FUSER_DEBUG'] = '1'
-            return self.run_impl(True)
-        else :
-            return self.run_impl(False)
+        torch._C._jit_override_can_fuse_on_gpu(True)
+        torch._C._jit_set_texpr_fuser_enabled(args.cuda_fuser == "te")
+        with cuda_pointwise_context(
+            args.cuda_pointwise_loop_levels,
+            args.cuda_pointwise_block_count,
+            args.cuda_pointwise_block_size,
+        ):
+            return self.run_impl()
 
-    def run_impl(self, use_fuser):
+    def run_impl(self):
         warmups = 10
         if self.device == "cuda":
             iters = 1000
@@ -163,7 +134,7 @@ class Benchmark(object):
                 time_start = time.time()
 
             if i == 0:
-                if self.jit_mode == "trace" and use_fuser :
+                if self.jit_mode == "trace":
                     self.bm_jit = torch.jit.trace(
                         self.forward, example_inputs=self.inputs, check_trace=False
                     )
@@ -171,10 +142,6 @@ class Benchmark(object):
                     self.check()
                 else:
                     print("Warning: no reference result for ", self.module())
-            elif i == 1:
-                # The fusion graph is visible after the first iter is executed
-                if self.jit_mode == "trace" and use_fuser and self.print_ir :
-                    print(self.bm_jit.graph_for(*self.inputs))
             z = self.compute()
             if self.mode == "both":
                 if self.result_grad is None:
@@ -192,8 +159,8 @@ class Benchmark(object):
         result_dict = {
             "desc": self.desc(),
             "us": iter_time * 1e6,
-            "sol": memory_workload["sol"] * self.dtype_to_bytes() / iter_time / 1e9,
-            "algorithmic": memory_workload["algorithmic"] * self.dtype_to_bytes() / iter_time / 1e9,
+            "sol": memory_workload["sol"] / iter_time / 1e9,
+            "algorithmic": memory_workload["algorithmic"] / iter_time / 1e9,
         }
         if compute_workload:
             result_dict["compute_workload"] = compute_workload / iter_time / 1e9

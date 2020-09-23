@@ -210,15 +210,13 @@ void createTensorFromList(Stack* stack) {
   auto tensor =
       at::empty(sizes, at::initialTensorOptions().dtype(initial_scalar_type));
 
-  if (tensor.numel() != 0) {
-    recursiveStore(
-        (char*)tensor.data_ptr(),
-        sizes,
-        tensor.strides(),
-        0,
-        tensor.element_size(),
-        data);
-  }
+  recursiveStore(
+      (char*)tensor.data_ptr(),
+      sizes,
+      tensor.strides(),
+      0,
+      tensor.element_size(),
+      data);
 
   tensor = castTensorTo(tensor, dtype, device);
   auto default_type = at::typeMetaToScalarType(at::get_default_dtype());

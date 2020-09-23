@@ -11,10 +11,10 @@ class LiteNativePeer implements INativePeer {
 
   private final HybridData mHybridData;
 
-  private static native HybridData initHybrid(String moduleAbsolutePath, int deviceJniCode);
+  private static native HybridData initHybrid(String moduleAbsolutePath);
 
-  LiteNativePeer(String moduleAbsolutePath, Device device) {
-    mHybridData = initHybrid(moduleAbsolutePath, device.jniCode);
+  LiteNativePeer(String moduleAbsolutePath) {
+    mHybridData = initHybrid(moduleAbsolutePath);
   }
 
   public void resetNative() {

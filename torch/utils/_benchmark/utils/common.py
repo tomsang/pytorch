@@ -76,9 +76,6 @@ class Measurement:
     def __setstate__(self, state: Dict[str, Any]):
         self.__init__(**state)  # type: ignore
 
-    def meets_confidence(self, threshold=_IQR_WARN_THRESHOLD):
-        return self._iqr / self._median < threshold
-
     def _populate_warnings(self):
         warnings, rel_iqr = [], self._iqr / self._median * 100
 
@@ -90,7 +87,7 @@ class Measurement:
 
         if self._iqr / self._median > _IQR_GROSS_WARN_THRESHOLD:
             add_warning("This suggests significant environmental influence.")
-        elif not self.meets_confidence():
+        elif self._iqr / self._median > _IQR_WARN_THRESHOLD:
             add_warning("This could indicate system fluctuation.")
         return warnings
 

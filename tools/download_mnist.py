@@ -1,9 +1,17 @@
+from __future__ import division
+from __future__ import print_function
+
 import argparse
 import gzip
 import os
-from urllib.error import URLError
-from urllib.request import urlretrieve
 import sys
+
+try:
+    from urllib.error import URLError
+    from urllib.request import urlretrieve
+except ImportError:
+    from urllib2 import URLError
+    from urllib import urlretrieve
 
 MIRRORS = [
     'http://yann.lecun.com/exdb/mnist/',

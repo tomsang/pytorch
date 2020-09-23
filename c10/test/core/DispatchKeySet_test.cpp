@@ -111,7 +111,6 @@ TEST(DispatchKeySet, IteratorRangeFull) {
 
 TEST(DispatchKeySet, SpecificKeys) {
   DispatchKeySet keyset({
-      static_cast<DispatchKey>(0), // Undefined should be ignored
       static_cast<DispatchKey>(4),
       static_cast<DispatchKey>(10),
       static_cast<DispatchKey>(15),

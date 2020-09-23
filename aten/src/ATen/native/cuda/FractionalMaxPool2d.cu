@@ -323,7 +323,6 @@ Tensor& fractional_max_pool2d_backward_out_cuda(
   IntArrayRef output_size,
   const at::Tensor& indices)
 {
-  // See Note [Writing Nondeterministic Operations]
   // Nondeterministic because of atomicAdd usage
   globalContext().alertNotDeterministic("fractional_max_pool2d_backward_out_cuda");
   fractional_max_pool2d_backward_out_cuda_template(
@@ -343,7 +342,6 @@ Tensor fractional_max_pool2d_backward_cuda(
   IntArrayRef output_size,
   const at::Tensor& indices)
 {
-  // See Note [Writing Nondeterministic Operations]
   // Nondeterministic because of atomicAdd usage
   globalContext().alertNotDeterministic("fractional_max_pool2d_backward_cuda");
   Tensor gradInput = at::empty({0}, input.options());

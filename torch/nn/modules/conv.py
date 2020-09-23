@@ -129,8 +129,6 @@ class Conv1d(_ConvNd):
     :math:`N` is a batch size, :math:`C` denotes a number of channels,
     :math:`L` is a length of signal sequence.
 
-    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.
-
     * :attr:`stride` controls the stride for the cross-correlation, a single
       number or a one-element tuple.
 
@@ -276,8 +274,6 @@ class Conv2d(_ConvNd):
     :math:`N` is a batch size, :math:`C` denotes a number of channels,
     :math:`H` is a height of input planes in pixels, and :math:`W` is
     width in pixels.
-
-    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.
 
     * :attr:`stride` controls the stride for the cross-correlation, a single
       number or a tuple.
@@ -435,8 +431,6 @@ class Conv3d(_ConvNd):
 
     where :math:`\star` is the valid 3D `cross-correlation`_ operator
 
-    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.
-
     * :attr:`stride` controls the stride for the cross-correlation.
 
     * :attr:`padding` controls the amount of implicit zero-paddings on both
@@ -585,10 +579,8 @@ class _ConvTransposeNd(_ConvNd):
             padding, dilation, transposed, output_padding,
             groups, bias, padding_mode)
 
-    # dilation being an optional parameter is for backwards
-    # compatibility
-    def _output_padding(self, input, output_size, stride, padding, kernel_size, dilation=None):
-        # type: (Tensor, Optional[List[int]], List[int], List[int], List[int], Optional[List[int]]) -> List[int]
+    def _output_padding(self, input, output_size, stride, padding, kernel_size):
+        # type: (Tensor, Optional[List[int]], List[int], List[int], List[int]) -> List[int]
         if output_size is None:
             ret = _single(self.output_padding)  # converting to list if was not already
         else:
@@ -604,8 +596,7 @@ class _ConvTransposeNd(_ConvNd):
             max_sizes = torch.jit.annotate(List[int], [])
             for d in range(k):
                 dim_size = ((input.size(d + 2) - 1) * stride[d] -
-                            2 * padding[d] +
-                            (dilation[d] if dilation is not None else 1) * (kernel_size[d] - 1) + 1)
+                            2 * padding[d] + kernel_size[d])
                 min_sizes.append(dim_size)
                 max_sizes.append(min_sizes[d] + stride[d] - 1)
 
@@ -634,8 +625,6 @@ class ConvTranspose1d(_ConvTransposeNd):
     This module can be seen as the gradient of Conv1d with respect to its input.
     It is also known as a fractionally-strided convolution or
     a deconvolution (although it is not an actual deconvolution operation).
-
-    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.
 
     * :attr:`stride` controls the stride for the cross-correlation.
 
@@ -688,7 +677,6 @@ class ConvTranspose1d(_ConvTransposeNd):
         a performance cost) by setting ``torch.backends.cudnn.deterministic =
         True``.
         Please see the notes on :doc:`/notes/randomness` for background.
-
 
     Args:
         in_channels (int): Number of channels in the input image
@@ -756,8 +744,7 @@ class ConvTranspose1d(_ConvTransposeNd):
         if self.padding_mode != 'zeros':
             raise ValueError('Only `zeros` padding mode is supported for ConvTranspose1d')
 
-        output_padding = self._output_padding(
-            input, output_size, self.stride, self.padding, self.kernel_size, self.dilation)
+        output_padding = self._output_padding(input, output_size, self.stride, self.padding, self.kernel_size)
         return F.conv_transpose1d(
             input, self.weight, self.bias, self.stride, self.padding,
             output_padding, self.groups, self.dilation)
@@ -770,8 +757,6 @@ class ConvTranspose2d(_ConvTransposeNd):
     This module can be seen as the gradient of Conv2d with respect to its input.
     It is also known as a fractionally-strided convolution or
     a deconvolution (although it is not an actual deconvolution operation).
-
-    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.
 
     * :attr:`stride` controls the stride for the cross-correlation.
 
@@ -921,8 +906,7 @@ class ConvTranspose2d(_ConvTransposeNd):
         if self.padding_mode != 'zeros':
             raise ValueError('Only `zeros` padding mode is supported for ConvTranspose2d')
 
-        output_padding = self._output_padding(
-            input, output_size, self.stride, self.padding, self.kernel_size, self.dilation)
+        output_padding = self._output_padding(input, output_size, self.stride, self.padding, self.kernel_size)
 
         return F.conv_transpose2d(
             input, self.weight, self.bias, self.stride, self.padding,
@@ -938,8 +922,6 @@ class ConvTranspose3d(_ConvTransposeNd):
     This module can be seen as the gradient of Conv3d with respect to its input.
     It is also known as a fractionally-strided convolution or
     a deconvolution (although it is not an actual deconvolution operation).
-
-    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.
 
     * :attr:`stride` controls the stride for the cross-correlation.
 
@@ -1083,8 +1065,7 @@ class ConvTranspose3d(_ConvTransposeNd):
         if self.padding_mode != 'zeros':
             raise ValueError('Only `zeros` padding mode is supported for ConvTranspose3d')
 
-        output_padding = self._output_padding(
-            input, output_size, self.stride, self.padding, self.kernel_size, self.dilation)
+        output_padding = self._output_padding(input, output_size, self.stride, self.padding, self.kernel_size)
 
         return F.conv_transpose3d(
             input, self.weight, self.bias, self.stride, self.padding,

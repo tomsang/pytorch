@@ -21,11 +21,6 @@ CONFIG_TREE_DATA = [
                     ("asan", [XImportant(True)]),
                 ]),
             ]),
-            ("7", [
-                ("3.6", [
-                    ("onnx", [XImportant(True)]),
-                ]),
-            ]),
         ]),
         ("cuda", [
             ("9.2", [
@@ -154,7 +149,6 @@ class ExperimentalFeatureConfigNode(TreeConfigNode):
             "vulkan": VulkanConfigNode,
             "parallel_tbb": ParallelTBBConfigNode,
             "parallel_native": ParallelNativeConfigNode,
-            "onnx": ONNXConfigNode,
             "libtorch": LibTorchConfigNode,
             "important": ImportantConfigNode,
             "build_only": BuildOnlyConfigNode,
@@ -193,17 +187,6 @@ class AsanConfigNode(TreeConfigNode):
 
     def init2(self, node_name):
         self.props["is_asan"] = node_name
-
-    def child_constructor(self):
-        return ImportantConfigNode
-
-
-class ONNXConfigNode(TreeConfigNode):
-    def modify_label(self, label):
-        return "Onnx=" + str(label)
-
-    def init2(self, node_name):
-        self.props["is_onnx"] = node_name
 
     def child_constructor(self):
         return ImportantConfigNode

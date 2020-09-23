@@ -148,9 +148,13 @@ static PyObject * THPStorage_(get)(THPStorage *self, PyObject *index)
     if (nindex < 0)
       nindex += (self->cdata->nbytes() / sizeof(scalar_t));
     if (nindex < 0 || nindex >= (self->cdata->nbytes() / sizeof(scalar_t))) {
-      PyErr_SetString(PyExc_IndexError, fmt::format(
-            "index {} out of range for storage of size {}",
-            nindex, self->cdata->nbytes() / sizeof(scalar_t)));
+      PyErr_Format(
+          PyExc_IndexError,
+          "index %" PRId64
+          " out of range for storage of "
+          "size %" PRId64,
+          (int64_t)nindex,
+          (int64_t)(self->cdata->nbytes() / sizeof(scalar_t)));
       return nullptr;
     }
     scalar_t value = THWStorage_(get)(LIBRARY_STATE self->cdata, nindex);
@@ -162,8 +166,8 @@ static PyObject * THPStorage_(get)(THPStorage *self, PyObject *index)
     if (!THPUtils_parseSlice(index, len, &start, &stop, &step, &slicelength))
       return nullptr;
     if (step != 1) {
-      THPUtils_setError("Trying to slice with a step of %lld, but only a step of "
-          "1 is supported", (long long)step);
+      THPUtils_setError("Trying to slice with a step of %" PRId64 ", but only a step of "
+          "1 is supported", (int64_t)step);
       return nullptr;
     }
 
@@ -218,8 +222,8 @@ static int THPStorage_(set)(THPStorage *self, PyObject *index, PyObject *value)
     if (!THPUtils_parseSlice(index, len, &start, &stop, &step, &slicelength))
       return -1;
     if (step != 1) {
-      THPUtils_setError("Trying to slice with a step of %lld, but only a step of "
-          "1 is supported", (long long)step);
+      THPUtils_setError("Trying to slice with a step of %" PRId64 ", but only a step of "
+          "1 is supported", (int64_t)step);
       return 0;
     }
     // TODO: check the bounds only once

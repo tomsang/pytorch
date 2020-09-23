@@ -159,14 +159,12 @@ void vulkanFoldPrePackingOps(script::Module& m) {
   PrePackingOpsFolder(m, filter_fn, "prepack_folding");
 }
 
-script::Module vulkanOptimizeForMobile(
-    const script::Module& m,
-    const std::vector<std::string>& preserved_methods) {
+script::Module vulkanOptimizeForMobile(const script::Module& m) {
   auto cloned_module = m.clone();
   cloned_module.eval();
   cloned_module = FoldConvBatchNorm(cloned_module);
   vulkanInsertPrePackedOps(cloned_module);
-  cloned_module = freeze_module(cloned_module, preserved_methods);
+  cloned_module = freeze_module(cloned_module);
   vulkanFusePrePackedConvWithClamp(cloned_module);
   vulkanFoldPrePackingOps(cloned_module);
   removeDropout(cloned_module);
@@ -195,9 +193,7 @@ void vulkanFoldPrePackingOps(script::Module& m) {
       "Vulkan is not enabled. Please build with USE_VULKAN=1");
 }
 
-script::Module vulkanOptimizeForMobile(
-    const script::Module& module,
-    const std::vector<std::string>& preserved_methods) {
+script::Module vulkanOptimizeForMobile(const script::Module& module) {
   TORCH_INTERNAL_ASSERT(
       "Mobile optimizaiton only available with Vulkan at the moment. "
       "Vulkan is not enabled. Please build with USE_VULKAN=1");

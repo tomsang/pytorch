@@ -175,7 +175,7 @@ static void _fft_fill_with_conjugate_symmetry_(Tensor& input,
 static inline Tensor _run_cufft(
     const CuFFTConfig &config, Tensor& input, int64_t signal_ndim,
     bool complex_input, bool complex_output, bool inverse,
-    IntArrayRef checked_signal_sizes, fft_norm_mode norm, bool onesided,
+    IntArrayRef checked_signal_sizes, bool normalized, bool onesided,
     IntArrayRef output_sizes, bool input_was_cloned
 ) {
   if (config.should_clone_input() && !input_was_cloned) {
@@ -235,12 +235,12 @@ static inline Tensor _run_cufft(
     inverse ? CUFFT_INVERSE : CUFFT_FORWARD));
 #endif
 
-  // rescale if requested
+  // rescale if needed by normalized flag or inverse transform
   auto size_last_signal_dim = checked_signal_sizes[signal_ndim - 1];
-  if (norm != fft_norm_mode::none) {
+  if (normalized || inverse) {
     auto signal_numel = at::prod_intlist(checked_signal_sizes);
     double scale_denom;
-    if (norm == fft_norm_mode::by_root_n) {
+    if (normalized) {
       scale_denom = std::sqrt(static_cast<double>(signal_numel));
     } else {
       scale_denom = static_cast<double>(signal_numel);
@@ -324,7 +324,7 @@ void cufft_clear_plan_cache_impl(int64_t device_index) {
 // Currently not utilizing multi GPUs so this can be potentially sped up.
 Tensor _fft_cufft(const Tensor& self, int64_t signal_ndim,
                   bool complex_input, bool complex_output, bool inverse,
-                  IntArrayRef checked_signal_sizes, int64_t normalization, bool onesided,
+                  IntArrayRef checked_signal_sizes, bool normalized, bool onesided,
                   IntArrayRef output_sizes) {
 
   CuFFTParamsLRUCache& plan_cache = cufft_get_plan_cache(self.device().index());
@@ -377,16 +377,14 @@ Tensor _fft_cufft(const Tensor& self, int64_t signal_ndim,
                                              complex_output, checked_signal_sizes,
                                              onesided, output_sizes);
       return _run_cufft(config, input, signal_ndim, complex_input,
-                        complex_output, inverse, checked_signal_sizes,
-                        static_cast<fft_norm_mode>(normalization),
+                        complex_output, inverse, checked_signal_sizes, normalized,
                         onesided, output_sizes, input_was_cloned);
     }
   }
   CuFFTConfig config(input, signal_ndim, complex_input, complex_output,
                      checked_signal_sizes, onesided, output_sizes);
   return _run_cufft(config, input, signal_ndim, complex_input,
-                    complex_output, inverse, checked_signal_sizes,
-                    static_cast<fft_norm_mode>(normalization),
+                    complex_output, inverse, checked_signal_sizes, normalized,
                     onesided, output_sizes, input_was_cloned);
 }
 

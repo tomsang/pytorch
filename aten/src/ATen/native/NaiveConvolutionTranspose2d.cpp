@@ -453,25 +453,23 @@ static void slow_conv_transpose2d_backward_out_cpu_template(
           grad_input_n = grad_input.select(0, elt);
           grad_output_n = grad_output.select(0, elt);
 
-          if (kernel_height != 1 || kernel_width != 1) {
-            // Extract columns:
-            im2col<scalar_t>(
-                  grad_output_n.data_ptr<scalar_t>(),
-                  n_output_plane,
-                  output_height,
-                  output_width,
-                  input_height,
-                  input_width,
-                  kernel_height,
-                  kernel_width,
-                  pad_height,
-                  pad_width,
-                  stride_height,
-                  stride_width,
-                  dilation_height,
-                  dilation_width,
-                  grad_columns.data_ptr<scalar_t>());
-          }
+          // Extract columns:
+          im2col<scalar_t>(
+              grad_output_n.data_ptr<scalar_t>(),
+              n_output_plane,
+              output_height,
+              output_width,
+              input_height,
+              input_width,
+              kernel_height,
+              kernel_width,
+              pad_height,
+              pad_width,
+              stride_height,
+              stride_width,
+              dilation_height,
+              dilation_width,
+              grad_columns.data_ptr<scalar_t>());
 
           // M,N,K are dims of matrix A and B
           // (see http://docs.nvidia.com/cuda/cublas/#cublas-lt-t-gt-gemm)
@@ -481,8 +479,6 @@ static void slow_conv_transpose2d_backward_out_cpu_template(
 
           // Do GEMM (note: this is a bit confusing because gemm assumes
           // column-major matrices)
-          auto gemm_in_ptr = (kernel_height != 1 || kernel_width != 1) ?
-              grad_columns.data_ptr<scalar_t>() : grad_output_n.data_ptr<scalar_t>();
           cpublas::gemm(
               cpublas::NoTranspose,
               cpublas::NoTranspose,
@@ -490,7 +486,7 @@ static void slow_conv_transpose2d_backward_out_cpu_template(
               m,
               k,
               1,
-              gemm_in_ptr,
+              grad_columns.data_ptr<scalar_t>(),
               n,
               weight.data_ptr<scalar_t>(),
               k,
@@ -648,25 +644,23 @@ void slow_conv_transpose2d_acc_grad_parameters_cpu(
             // Matrix mulitply per output:
             input_n = input.select(0, elt);
 
-            if (kernel_height != 1 || kernel_width != 1) {
-              // Extract columns:
-              im2col<scalar_t>(
-                  grad_output_n.data_ptr<scalar_t>(),
-                  n_output_plane,
-                  output_height,
-                  output_width,
-                  input_height,
-                  input_width,
-                  kernel_height,
-                  kernel_width,
-                  pad_height,
-                  pad_width,
-                  stride_height,
-                  stride_width,
-                  dilation_height,
-                  dilation_width,
-                  columns.data_ptr<scalar_t>());
-            }
+            // Extract columns:
+            im2col<scalar_t>(
+                grad_output_n.data_ptr<scalar_t>(),
+                n_output_plane,
+                output_height,
+                output_width,
+                input_height,
+                input_width,
+                kernel_height,
+                kernel_width,
+                pad_height,
+                pad_width,
+                stride_height,
+                stride_width,
+                dilation_height,
+                dilation_width,
+                columns.data_ptr<scalar_t>());
 
             // M,N,K are dims of matrix A and B
             // (see http://docs.nvidia.com/cuda/cublas/#cublas-lt-t-gt-gemm)
@@ -676,8 +670,6 @@ void slow_conv_transpose2d_acc_grad_parameters_cpu(
 
             // Do GEMM (note: this is a bit confusing because gemm assumes
             // column-major matrices)
-            auto gemm_in_ptr = (kernel_height != 1 || kernel_width != 1) ?
-                columns.data_ptr<scalar_t>() : grad_output_n.data_ptr<scalar_t>();
             cpublas::gemm(
                 cpublas::Transpose,
                 cpublas::NoTranspose,
@@ -685,7 +677,7 @@ void slow_conv_transpose2d_acc_grad_parameters_cpu(
                 m,
                 k,
                 scale,
-                gemm_in_ptr,
+                columns.data_ptr<scalar_t>(),
                 k,
                 input_n.data_ptr<scalar_t>(),
                 k,

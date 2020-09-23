@@ -442,10 +442,7 @@ class ELU(Module):
     r"""Applies the element-wise function:
 
     .. math::
-        \text{ELU}(x) = \begin{cases}
-        x, & \text{ if } x > 0\\
-        \alpha * (\exp(x) - 1), & \text{ if } x \leq 0
-        \end{cases}
+        \text{ELU}(x) = \max(0,x) + \min(0, \alpha * (\exp(x) - 1))
 
     Args:
         alpha: the :math:`\alpha` value for the ELU formulation. Default: 1.0

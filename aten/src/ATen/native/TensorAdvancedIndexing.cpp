@@ -587,8 +587,14 @@ SCATTER_GATHER_OP get_operator_enum(const std::string& reduce) {
   if (reduce == "add") {
     return SCATTER_GATHER_OP::REDUCE_ADD;
   }
+  else if (reduce == "subtract") {
+    return SCATTER_GATHER_OP::REDUCE_SUBTRACT;
+  }
   else if (reduce == "multiply") {
     return SCATTER_GATHER_OP::REDUCE_MULTIPLY;
+  }
+  else if (reduce == "divide") {
+    return SCATTER_GATHER_OP::REDUCE_DIVIDE;
   }
   else {
     TORCH_CHECK(false,
@@ -596,7 +602,7 @@ SCATTER_GATHER_OP get_operator_enum(const std::string& reduce) {
   }
 }
 
-Tensor& scatter_scalar_reduce_(Tensor& self, const int64_t dim, const Tensor& index,
+Tensor& scatter_cpu_scalar_reduce_(Tensor& self, const int64_t dim, const Tensor& index,
                                    Scalar value, const std::string reduce) {
   TORCH_CHECK_INDEX(index.scalar_type() == ScalarType::Long,
                     "scatter_(): Expected dtype int64 for index.");
@@ -607,7 +613,7 @@ Tensor& scatter_scalar_reduce_(Tensor& self, const int64_t dim, const Tensor& in
   return self;
 }
 
-Tensor & scatter_reduce_(Tensor & self, const int64_t dim, const Tensor & index,
+Tensor & scatter_cpu_reduce_(Tensor & self, const int64_t dim, const Tensor & index,
                       const Tensor & src, const std::string reduce) {
   TORCH_CHECK_INDEX(index.scalar_type() == ScalarType::Long,
                     "scatter_(): Expected dtype int64 for index");

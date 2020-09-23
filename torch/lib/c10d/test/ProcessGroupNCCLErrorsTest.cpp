@@ -38,8 +38,8 @@ class ProcessGroupNCCLSimulateErrors : public c10d::ProcessGroupNCCL {
       const std::shared_ptr<c10d::Store>& store,
       int rank,
       int size,
-      c10d::ProcessGroupNCCL::Options opts)
-      : ProcessGroupNCCL(store, rank, size, opts), simulate_error_(false) {}
+      std::chrono::milliseconds timeout)
+      : ProcessGroupNCCL(store, rank, size, timeout), simulate_error_(false) {}
 
   std::exception_ptr checkForNCCLErrors(
       const std::vector<std::shared_ptr<c10d::NCCLComm>>& ncclComms) override {
@@ -100,8 +100,8 @@ class ProcessGroupNCCLTimedOutErrors : public ProcessGroupNCCLSimulateErrors {
       const std::shared_ptr<c10d::Store>& store,
       int rank,
       int size,
-      c10d::ProcessGroupNCCL::Options opts)
-      : ProcessGroupNCCLSimulateErrors(store, rank, size, opts),
+      std::chrono::milliseconds timeout)
+      : ProcessGroupNCCLSimulateErrors(store, rank, size, timeout),
         set_timedout_error_(false) {}
 
   std::shared_ptr<ProcessGroupNCCL::WorkNCCL> initWork(
@@ -165,10 +165,8 @@ TEST_F(ProcessGroupNCCLErrorsTest, testNCCLErrorsBlocking) {
   }
 
   ASSERT_TRUE(setenv(c10d::NCCL_BLOCKING_WAIT, "1", 1) == 0);
-  c10d::ProcessGroupNCCL::Options options;
-  options.opTimeout = std::chrono::milliseconds(1000);
   ProcessGroupNCCLSimulateErrors pg(
-      store_, 0, 1, options);
+      store_, 0, 1, std::chrono::milliseconds(1000));
 
   auto work = pg.allreduce(tensors_);
   work->wait();
@@ -194,10 +192,8 @@ TEST_F(ProcessGroupNCCLErrorsTest, testNCCLTimedoutErrorsBlocking) {
   }
 
   ASSERT_TRUE(setenv(c10d::NCCL_BLOCKING_WAIT, "1", 1) == 0);
-  c10d::ProcessGroupNCCL::Options options;
-  options.opTimeout = std::chrono::milliseconds(3000);
   ProcessGroupNCCLTimedOutErrors pg(
-      store_, 0, 1, options);
+      store_, 0, 1, std::chrono::milliseconds(3000));
 
   auto work = pg.allreduce(tensors_);
   work->wait();
@@ -217,10 +213,8 @@ TEST_F(ProcessGroupNCCLErrorsTest, testNCCLErrorsNonBlocking) {
     return;
   }
 
-  c10d::ProcessGroupNCCL::Options options;
-  options.opTimeout = std::chrono::milliseconds(3000);
   ProcessGroupNCCLSimulateErrors pg(
-      store_, 0, 1, options);
+      store_, 0, 1, std::chrono::milliseconds(3000));
 
   auto work = pg.allreduce(tensors_);
   pg.barrier()->wait();

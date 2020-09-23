@@ -430,14 +430,13 @@ ProcessGroupNCCL::ProcessGroupNCCL(
     const std::shared_ptr<Store>& store,
     int rank,
     int size,
-    Options options)
+    const std::chrono::milliseconds& opTimeout)
     : ProcessGroup(rank, size),
       store_(store),
       ncclCommCounter_(0),
       terminateProcessGroup_(false),
-      opTimeout_(options.opTimeout),
-      futureNCCLCallbackStreams_(c10::cuda::device_count()),
-      isHighPriorityStream_(options.isHighPriorityStream) {
+      opTimeout_(opTimeout),
+      futureNCCLCallbackStreams_(c10::cuda::device_count()) {
   try {
     parseNcclBlockingWait();
   } catch (std::exception& e) {
@@ -770,14 +769,14 @@ std::vector<std::shared_ptr<NCCLComm>>& ProcessGroupNCCL::getNCCLComm(
     ncclComms[i] = NCCLComm::create(numRanks, rank, ncclID);
 
     // Creates the NCCL streams
-    streamVal.push_back(at::cuda::getStreamFromPool(isHighPriorityStream_));
+    streamVal.push_back(at::cuda::getStreamFromPool());
 
     // If not set before, get a dedicated stream for the device to run
     // FutureNCCL then callbacks.
     std::lock_guard<std::mutex> lock(mutex_);
     if (futureNCCLCallbackStreams_[deviceIndex] == nullptr) {
       futureNCCLCallbackStreams_[deviceIndex] =
-          std::make_shared<at::cuda::CUDAStream>(at::cuda::getStreamFromPool(isHighPriorityStream_));
+          std::make_shared<at::cuda::CUDAStream>(at::cuda::getStreamFromPool());
     }
   }
 
@@ -932,8 +931,6 @@ void ProcessGroupNCCL::workEnqueue(
     workList_.emplace_back(std::move(work));
   }
 }
-ProcessGroupNCCL::Options::Options()
-    : opTimeout(kProcessGroupNCCLOpTimeoutMillis), isHighPriorityStream(false) {}
 
 template <typename Fn, typename PreProcess, typename PostProcess>
 std::shared_ptr<ProcessGroup::Work> ProcessGroupNCCL::collective(

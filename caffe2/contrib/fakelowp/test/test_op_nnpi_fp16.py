@@ -22,6 +22,8 @@ kEpsilon = 1e-8
 
 
 class ArithmeticOpsTest(serial.SerializedTestCase):
+    @given(seed=st.integers(0, 65534))
+    @settings(deadline=None)
     def _test_binary_op_graph(self, name, seed):
         np.random.seed(seed)
         workspace.ResetWorkspace()
@@ -105,22 +107,26 @@ class ArithmeticOpsTest(serial.SerializedTestCase):
     @given(seed=st.integers(0, 65534))
     @settings(deadline=None)
     def test_add_graph(self, seed):
-        self._test_binary_op_graph("Add", seed)
+        np.random.seed(seed)
+        self._test_binary_op_graph("Add")
 
     @given(seed=st.integers(0, 65534))
     @settings(deadline=None)
     def test_sub_graph(self, seed):
-        self._test_binary_op_graph("Sub", seed)
+        np.random.seed(seed)
+        self._test_binary_op_graph("Sub")
 
     @given(seed=st.integers(0, 65534))
     @settings(deadline=None)
     def test_mul_graph(self, seed):
-        self._test_binary_op_graph("Mul", seed)
+        np.random.seed(seed)
+        self._test_binary_op_graph("Mul")
 
     @given(seed=st.integers(0, 65534))
     @settings(deadline=None)
     def test_div_graph(self, seed):
-        self._test_binary_op_graph("Div", seed)
+        np.random.seed(seed)
+        self._test_binary_op_graph("Div")
 
 
 class UnaryOpTest(serial.SerializedTestCase):

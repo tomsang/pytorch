@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 from torch.testing._internal.common_utils import TestCase, run_tests
 import tempfile
@@ -147,7 +148,7 @@ class TestTypeHints(TestCase):
                     target_is_directory=True
                 )
             except OSError:
-                raise unittest.SkipTest('cannot symlink') from None
+                raise unittest.SkipTest('cannot symlink')
             (stdout, stderr, result) = mypy.api.run([
                 '--follow-imports', 'silent',
                 '--check-untyped-defs',

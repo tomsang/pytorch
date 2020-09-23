@@ -121,7 +121,8 @@ bool loadPythonClasses() {
 } // anonymous namespace
 
 #if !defined(__HIP_PLATFORM_HCC__)
-TORCH_API void runJITCPPTests();
+TORCH_API void runJITCPPTests(bool runCuda);
+TORCH_API void runTENSOREXPRCPPTests(bool runCuda);
 #endif
 
 void initJITBindings(PyObject* module) {
@@ -419,15 +420,27 @@ void initJITBindings(PyObject* module) {
 #if defined(BUILDING_TESTS) && !defined(__HIP_PLATFORM_HCC__)
       .def(
           "_jit_run_cpp_tests",
-          []() {
+          [](bool runCuda) {
             // We have to release the GIL inside this method, because if we
             // happen to initialize the autograd engine in these tests, the
             // newly spawned worker threads will try to initialize their
             // PyThreadState*, and they need the GIL for this.
             pybind11::gil_scoped_release _no_gil;
-            return runJITCPPTests();
-          })
+            return runJITCPPTests(runCuda);
+          },
+          py::arg("run_cuda"))
       .def("_jit_has_cpp_tests", []() { return true; })
+      .def(
+          "_run_tensorexpr_cpp_tests",
+          [](bool runCuda) {
+            // We have to release the GIL inside this method, because if we
+            // happen to initialize the autograd engine in these tests, the
+            // newly spawned worker threads will try to initialize their
+            // PyThreadState*, and they need the GIL for this.
+            pybind11::gil_scoped_release _no_gil;
+            return runTENSOREXPRCPPTests(runCuda);
+          },
+          py::arg("run_cuda"))
       .def("_has_tensorexpr_cpp_tests", []() { return true; })
 #else
       .def("_jit_run_cpp_tests", []() { throw std::exception(); })
@@ -520,7 +533,7 @@ void initJITBindings(PyObject* module) {
           })
       .def(
           "_jit_get_trigger_value",
-          [](const std::string& trigger_name) -> int {
+          [](const std::string& trigger_name) {
             using namespace torch::jit::tensorexpr;
             ExecutionTrigger* trigger =
                 ExecutionTriggerList::GetInstance().FindByName(trigger_name);
@@ -647,9 +660,8 @@ void initJITBindings(PyObject* module) {
           })
       .def(
           "_jit_pass_vulkan_optimize_for_mobile",
-          [](script::Module& module,
-             std::vector<std::string>& preserved_methods) {
-            return vulkanOptimizeForMobile(module, preserved_methods);
+          [](script::Module& module) {
+            return vulkanOptimizeForMobile(module);
           })
       .def(
           "_jit_pass_onnx_unpack_quantized_weights",

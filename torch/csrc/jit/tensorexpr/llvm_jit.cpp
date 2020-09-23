@@ -32,8 +32,6 @@ class TORCH_API PytorchLLVMJITImpl {
     cantFail(LLJ->defineAbsolute(
         *Mangle("log10f"), {llvm::pointerToJITTargetAddress(&log10f), {}}));
     cantFail(LLJ->defineAbsolute(
-        *Mangle("log1pf"), {llvm::pointerToJITTargetAddress(&log1pf), {}}));
-    cantFail(LLJ->defineAbsolute(
         *Mangle("logf"), {llvm::pointerToJITTargetAddress(&logf), {}}));
     cantFail(LLJ->defineAbsolute(
         *Mangle("log2f"), {llvm::pointerToJITTargetAddress(&log2f), {}}));
@@ -129,7 +127,7 @@ class TORCH_API PytorchLLVMJITImpl {
         *Mangle("Sleef_log10f4"),
         {llvm::pointerToJITTargetAddress(&Sleef_log10f4_u10), {}}));
     cantFail(LLJ->defineAbsolute(
-        *Mangle("Sleef_log1pf4"),
+        *Mangle("Sleef_logf1pf4"),
         {llvm::pointerToJITTargetAddress(&Sleef_log1pf4_u10), {}}));
     cantFail(LLJ->defineAbsolute(
         *Mangle("Sleef_sqrtf4"),
@@ -214,7 +212,7 @@ class TORCH_API PytorchLLVMJITImpl {
         *Mangle("Sleef_log10f8"),
         {llvm::pointerToJITTargetAddress(&Sleef_log10f8_u10), {}}));
     cantFail(LLJ->defineAbsolute(
-        *Mangle("Sleef_log1pf8"),
+        *Mangle("Sleef_logf1pf8"),
         {llvm::pointerToJITTargetAddress(&Sleef_log1pf8_u10), {}}));
     cantFail(LLJ->defineAbsolute(
         *Mangle("Sleef_sqrtf8"),
@@ -299,7 +297,7 @@ class TORCH_API PytorchLLVMJITImpl {
         *Mangle("Sleef_log10d2"),
         {llvm::pointerToJITTargetAddress(&Sleef_log10d2_u10), {}}));
     cantFail(LLJ->defineAbsolute(
-        *Mangle("Sleef_log1pd2"),
+        *Mangle("Sleef_logf1pd2"),
         {llvm::pointerToJITTargetAddress(&Sleef_log1pd2_u10), {}}));
     cantFail(LLJ->defineAbsolute(
         *Mangle("Sleef_sqrtd2"),
@@ -384,7 +382,7 @@ class TORCH_API PytorchLLVMJITImpl {
         *Mangle("Sleef_log10d4"),
         {llvm::pointerToJITTargetAddress(&Sleef_log10d4_u10), {}}));
     cantFail(LLJ->defineAbsolute(
-        *Mangle("Sleef_log1pd4"),
+        *Mangle("Sleef_logf1pd4"),
         {llvm::pointerToJITTargetAddress(&Sleef_log1pd4_u10), {}}));
     cantFail(LLJ->defineAbsolute(
         *Mangle("Sleef_sqrtd4"),

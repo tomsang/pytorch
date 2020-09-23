@@ -433,14 +433,6 @@ class TORCH_API Cond : public StmtNode<Cond> {
     }
   }
 
-  Cond* cloneWithNewBodies(Stmt* true_stmt, Stmt* false_stmt) {
-    return new Cond(condition_, true_stmt, false_stmt);
-  }
-
-  Cond* cloneWithNewBody(Stmt* true_stmt) {
-    return new Cond(condition_, true_stmt, nullptr);
-  }
-
  private:
   const Expr* condition_;
   Block* true_stmt_ = nullptr;
@@ -676,7 +668,7 @@ class TORCH_API For : public StmtNode<For> {
 // This node could only shows up as an internal with GPU backends.
 // TODO: move to this an internal IR.
 // TODO: make IR nodes extensible.
-class TORCH_API AtomicAdd : public StmtNode<AtomicAdd> {
+class AtomicAdd : public StmtNode<AtomicAdd> {
  public:
   AtomicAdd(
       const Buf* buf,
@@ -711,7 +703,7 @@ class TORCH_API AtomicAdd : public StmtNode<AtomicAdd> {
   const Expr* value_;
 };
 
-class TORCH_API SyncThreads : public StmtNode<SyncThreads> {
+class SyncThreads : public StmtNode<SyncThreads> {
  public:
   SyncThreads() {}
 };

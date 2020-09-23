@@ -390,17 +390,7 @@ class CUDASparseLengthsSumOp : public Operator<CUDAContext> {
 
   template <typename IndexType>
   bool DoRunWithType() {
-    if (SparseFused) {
-      return DispatchHelper<TensorTypes2<float, at::Half>, IndexType>::call(
-        this, Input(DATA));
-    } else {
-      return DoRunWithType2<IndexType, T>();
-    }
-  }
-
-  template <typename IndexType, typename InType>
-  bool DoRunWithType2() {
-    auto& dataInput = Input(DATA);
+    auto& dataInput = Input(0);
     auto& lengthsInput = Input(LENGTHS);
 
     CAFFE_ENFORCE_EQ(1, lengthsInput.dim(), "LENGTHS must be a vector");
@@ -439,6 +429,7 @@ class CUDASparseLengthsSumOp : public Operator<CUDAContext> {
         &inclusive_scan_length_buffer_,
         &context_);
 
+    const T* in_data = dataInput.template data<T>();
     auto* prefix_sum_length_data =
         inclusive_scan_length_buffer_.template data<int>();
     int N = dataSize;
@@ -447,15 +438,13 @@ class CUDASparseLengthsSumOp : public Operator<CUDAContext> {
     auto maxThreads =
         GetDeviceProperty(CaffeCudaGetDevice()).maxThreadsPerBlock;
     if (SparseFused) {
-      const InType* in_data = dataInput.template data<InType>();
-
       if (post <= maxThreads) {
         int multiple = std::min(maxThreads / post, SEGREDUCE_MINBLOCKS);
         dim3 block(post, multiple);
         size_t smem = sizeof(T) * post * multiple;
 
         // calling cuda kernel with ExactBlock = true, Average = false
-        sparse_length_sum_kernel<InType, T, IndexType, true, false>
+        sparse_length_sum_kernel<T, IndexType, true, false>
             <<<len_length, block, smem, context_.cuda_stream()>>>(
                 in_data,
                 out_data,
@@ -467,7 +456,7 @@ class CUDASparseLengthsSumOp : public Operator<CUDAContext> {
                 dataToReduceSize);
       } else {
         // calling cuda kernel with ExactBlock = false, Average = false
-        sparse_length_sum_kernel<InType, T, IndexType, false, false>
+        sparse_length_sum_kernel<T, IndexType, false, false>
             <<<len_length, maxThreads, 0, context_.cuda_stream()>>>(
                 in_data,
                 out_data,
@@ -479,8 +468,6 @@ class CUDASparseLengthsSumOp : public Operator<CUDAContext> {
                 dataToReduceSize);
       }
     } else {
-      const T* in_data = dataInput.template data<T>();
-
       if (post <= maxThreads) {
         length_sum_kernel<T, true, false>
             <<<len_length, post, 0, context_.cuda_stream()>>>(
@@ -494,7 +481,7 @@ class CUDASparseLengthsSumOp : public Operator<CUDAContext> {
     return true;
   }
 
-  enum { DATA = 0, INDICES = 1, LENGTHS = 1 + (SparseFused ? 1 : 0) };
+  enum { INDICES = 1, LENGTHS = 1 + (SparseFused ? 1 : 0) };
 
  private:
   // menber field to manage memory
@@ -525,17 +512,7 @@ class CUDASparseLengthsMeanOp : public Operator<CUDAContext> {
 
   template <typename IndexType>
   bool DoRunWithType() {
-    if (SparseFused) {
-      return DispatchHelper<TensorTypes2<float, at::Half>, IndexType>::call(
-        this, Input(DATA));
-    } else {
-      return DoRunWithType2<IndexType, T>();
-    }
-  }
-
-  template <typename IndexType, typename InType>
-  bool DoRunWithType2() {
-    auto& dataInput = Input(DATA);
+    auto& dataInput = Input(0);
     auto& lengthsInput = Input(LENGTHS);
 
     CAFFE_ENFORCE_EQ(1, lengthsInput.dim(), "LENGTHS must be a vector");
@@ -574,6 +551,7 @@ class CUDASparseLengthsMeanOp : public Operator<CUDAContext> {
         &inclusive_scan_length_buffer_,
         &context_);
 
+    const T* in_data = dataInput.template data<T>();
     auto* prefix_sum_length_data =
         inclusive_scan_length_buffer_.template data<int>();
     int N = dataSize;
@@ -582,13 +560,12 @@ class CUDASparseLengthsMeanOp : public Operator<CUDAContext> {
     auto maxThreads =
         GetDeviceProperty(CaffeCudaGetDevice()).maxThreadsPerBlock;
     if (SparseFused) {
-      const InType* in_data = dataInput.template data<InType>();
       if (post <= maxThreads) {
         int multiple = std::min(maxThreads / post, SEGREDUCE_MINBLOCKS);
         dim3 block(post, multiple);
         size_t smem = sizeof(T) * post * multiple;
         // calling cuda kernel with ExactBlock = true, Average = true
-        sparse_length_sum_kernel<InType, T, IndexType, true, true>
+        sparse_length_sum_kernel<T, IndexType, true, true>
             <<<len_length, block, smem, context_.cuda_stream()>>>(
                 in_data,
                 out_data,
@@ -600,7 +577,7 @@ class CUDASparseLengthsMeanOp : public Operator<CUDAContext> {
                 dataToReduceSize);
       } else {
         // calling cuda kernel with ExactBlock = false, Average = true
-        sparse_length_sum_kernel<InType, T, IndexType, false, true>
+        sparse_length_sum_kernel<T, IndexType, false, true>
             <<<len_length, maxThreads, 0, context_.cuda_stream()>>>(
                 in_data,
                 out_data,
@@ -612,8 +589,6 @@ class CUDASparseLengthsMeanOp : public Operator<CUDAContext> {
                 dataToReduceSize);
       }
     } else {
-      const T* in_data = dataInput.template data<T>();
-
       if (post <= maxThreads) {
         // calling cuda kernel with ExactBlock = true, Average = true
         length_sum_kernel<T, true, true>
@@ -629,7 +604,7 @@ class CUDASparseLengthsMeanOp : public Operator<CUDAContext> {
     return true;
   }
 
-  enum { DATA = 0, INDICES = 1, LENGTHS = 1 + (SparseFused ? 1 : 0) };
+  enum { INDICES = 1, LENGTHS = 1 + (SparseFused ? 1 : 0) };
 
  private:
   // menber field to manage memory

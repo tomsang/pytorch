@@ -68,8 +68,8 @@ Reducer::Reducer(
   // Initialize variable bucketing.
   // This can be reinitialized later after capturing runtime information.
   {
-    std::lock_guard<std::mutex> lock(mutex_);
-    initialize_buckets(std::move(bucket_indices));
+   std::lock_guard<std::mutex> lock(mutex_);
+   initialize_buckets(std::move(bucket_indices));
   }
 
   // All variables are expected to have their `grad_fn` set to the gradient
@@ -364,7 +364,8 @@ void Reducer::mark_variable_ready_dense(VariableIndex index) {
       // See Note [DDP Communication Hook]
       if (comm_hook_ == nullptr) {
         // imitates wrapped_scalar_tensor in ATen/native/BinaryOps.cpp
-        auto wrapped = c10::scalar_to_tensor(double(1.) / divFactor_);
+        auto wrapped =
+            c10::scalar_to_tensor(double(1.) / divFactor_);
         wrapped.unsafeGetTensorImpl()->set_wrapped_number(true);
         // Divides while copying into the bucket view.
         at::native::mul_out(bucket_view, grad, wrapped);
@@ -440,7 +441,7 @@ std::vector<at::Tensor> Reducer::get_local_used_maps_on_device() const {
 
 void Reducer::push_rebuilt_params_for_all_indices() {
   std::lock_guard<std::mutex> lock(mutex_);
-  if (!should_rebuild_buckets() || !rebuilt_param_indices_.empty()) {
+  if (!should_rebuild_buckets()) {
     return;
   }
   const auto replica_count = replicas_.size();
@@ -495,7 +496,7 @@ void Reducer::autograd_hook(VariableIndex index) {
   // rebuilt_param_indices_ based on gradient arriving order, and then at the
   // end of finalize_backward(), buckets will be rebuilt based on
   // rebuilt_params_ and rebuilt_param_indices_, and then will be broadcasted
-  // and initialized. Also we only need to dump tensors and parameter indcies of
+  // and intialized. Also we only need to dump tensors and parameter indcies of
   // one replica.
   push_rebuilt_params(index);
 
@@ -624,10 +625,18 @@ void Reducer::mark_variable_ready(VariableIndex index) {
     const c10::Stream currentStream =
         guard.getStream(replica.contents.device());
     torch::autograd::Engine::get_default_engine().queue_callback([=] {
-      std::lock_guard<std::mutex> lock(this->mutex_);
+      std::unique_lock<std::mutex> lock(this->mutex_);
       // Run callback with the current stream
       c10::OptionalStreamGuard currentStreamGuard{currentStream};
       this->finalize_backward();
+      // Rebuild bucket if this is the first time to rebuild
+      if (!rebuilt_params_.empty()) {
+        // Unlock since rebuild_buckets() acquires the lock.
+        lock.unlock();
+        rebuild_buckets();
+      } else {
+        lock.unlock();
+      }
     });
   }
 }
@@ -796,7 +805,7 @@ void Reducer::initialize_buckets(
         // metadata.  Checking just once won't catch if someone messes with
         // param layouts over time, but not messing with params after DDP
         // construction is already a documented constraint.
-        initialize_bucket_views(replica, replica.contents);
+        initialize_bucket_views(replica, replica.contents, true);
       }
 
       // Add bucket replica to enclosing bucket.
@@ -824,7 +833,8 @@ void Reducer::initialize_buckets(
 // (see Note:  "Gradient Layout Contract" in initialize_buckets).
 void Reducer::initialize_bucket_views(
     Reducer::BucketReplica& replica,
-    at::Tensor& contents) {
+    at::Tensor& contents,
+    bool populate_bucket_views_in) {
   for (size_t i = 0; i < replica.variables.size(); i++) {
     const auto& v = replica.variables[i];
     const auto offset = replica.offsets[i];
@@ -833,42 +843,30 @@ void Reducer::initialize_bucket_views(
       // If the param's memory is dense, match its layout, anticipating
       // the autograd engine (AccumulateGrad) will also create gradients
       // matching its layout.
-      replica.bucket_views_in.push_back(
-          contents.as_strided(v.sizes(), v.strides(), offset));
+      if (populate_bucket_views_in) {
+        replica.bucket_views_in.push_back(
+            contents.as_strided(v.sizes(), v.strides(), offset));
+      } else {
+        replica.bucket_views_out.push_back(
+            contents.as_strided(v.sizes(), v.strides(), offset));
+      }
     } else {
       // Fall back to a C-style contiguous view, again anticipating
       // AccumulateGrad will do the same when stashing grads for non-dense
       // params.
-      replica.bucket_views_in.push_back(
-          contents.narrow(0, offset, length).view(v.sizes()));
+      if (populate_bucket_views_in) {
+        replica.bucket_views_in.push_back(
+            contents.narrow(0, offset, length).view(v.sizes()));
+      } else {
+        replica.bucket_views_out.push_back(
+            contents.narrow(0, offset, length).view(v.sizes()));
+      }
     }
-    // By default `bucket_views_out` and `bucket_views_in` are
+    // If `initialize_bucket_views` was called from `initialize_buckets`,
+    // by default `bucket_views_out` and `bucket_views_in` are
     // essentially the same thing.
-    replica.bucket_views_out = replica.bucket_views_in;
-  }
-}
-
-// (see Note:  "Gradient Layout Contract" in initialize_buckets).
-void Reducer::populate_bucket_views_out(
-    Reducer::BucketReplica& replica,
-    at::Tensor& tensor) {
-  replica.bucket_views_out.clear();
-  for (size_t i = 0; i < replica.variables.size(); i++) {
-    const auto& v = replica.variables[i];
-    const auto offset = replica.offsets[i];
-    const auto length = replica.lengths[i];
-    if (v.is_non_overlapping_and_dense()) {
-      // If the param's memory is dense, match its layout, anticipating
-      // the autograd engine (AccumulateGrad) will also create gradients
-      // matching its layout.
-      replica.bucket_views_out.push_back(
-          tensor.as_strided(v.sizes(), v.strides(), offset));
-    } else {
-      // Fall back to a C-style contiguous view, again anticipating
-      // AccumulateGrad will do the same when stashing grads for non-dense
-      // params.
-      replica.bucket_views_out.push_back(
-          tensor.narrow(0, offset, length).view(v.sizes()));
+    if (populate_bucket_views_in) {
+      replica.bucket_views_out = replica.bucket_views_in;
     }
   }
 }
@@ -1080,7 +1078,8 @@ void Reducer::finalize_backward() {
         } else {
           // Reinitialize only `bucket_views_out` with the future_result by
           // following the same logic in `initialize_buckets`.
-          populate_bucket_views_out(replica, future_result[i]);
+          replica.bucket_views_out.clear();
+          initialize_bucket_views(replica, future_result[i], false);
         }
       }
     }
@@ -1288,6 +1287,12 @@ inline bool operator==(const BucketKey& lhs, const BucketKey& rhs) {
 
 } // namespace
 
+// This is equivalent to take_tensors but returns indices into the
+// tensor list argument for bucket assignment. Also, it is aware
+// of device placement and will not allow buckets to span devices.
+// The index of tensors[i] assigned to bucket is tensor_indices[i],
+// when tensor_indices is empty, the index of tensors[i] assigned to
+// bucket is i.
 std::vector<std::vector<size_t>> compute_bucket_assignment_by_size(
     const std::vector<at::Tensor>& tensors,
     const std::vector<size_t>& bucket_size_limits,

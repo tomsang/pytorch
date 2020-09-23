@@ -5,50 +5,36 @@ import array
 import os
 import sys
 import subprocess
-from tools.codegen.code_template import CodeTemplate
 
 H_NAME = "spv.h"
 CPP_NAME = "spv.cpp"
-DEFAULT_ENV = {"precision": "highp"}
 
 def getName(filePath):
     return os.path.basename(filePath).replace("/", "_").replace(".", "_")
 
-def genCppH(hFilePath, cppFilePath, srcDirPath, glslcPath, tmpDirPath, env):
+def genCppH(hFilePath, cppFilePath, srcDirPath, glslcPath, tmpDirPath):
     print("hFilePath:{} cppFilePath:{} srcDirPath:{} glslcPath:{} tmpDirPath:{}".format(
         hFilePath, cppFilePath, srcDirPath, glslcPath, tmpDirPath))
 
     cmd = "find " + srcDirPath + " -name \"*.glsl\""
     vexs = os.popen(cmd).read().split('\n')
-    templateSrcPaths = []
+    srcPaths = []
     for f in vexs:
         if len(f) > 1:
-            templateSrcPaths.append(f)
-            templateSrcPaths.sort()
-    print("templateSrcPaths:{}".format(templateSrcPaths))
+            srcPaths.append(f)
+            srcPaths.sort()
+    print("srcPaths:{}".format(srcPaths))
 
     spvPaths = []
-    for templateSrcPath in templateSrcPaths:
-        print("templateSrcPath {}".format(templateSrcPath))
-        name = getName(templateSrcPath).replace("_glsl", "")
+    for srcPath in srcPaths:
+        print("srcPath {}".format(srcPath))
+        name = getName(srcPath).replace("_glsl", "")
         print("name {}".format(name))
-
-        codeTemplate = CodeTemplate.from_file(templateSrcPath)
-        srcPath = tmpDirPath + "/" + name + ".glsl"
-        content = codeTemplate.substitute(env)
-        with open(srcPath, 'w') as f:
-            f.write(content)
 
         spvPath = tmpDirPath + "/" + name + ".spv"
         print("spvPath {}".format(spvPath))
 
-        cmd = [
-            glslcPath, "-fshader-stage=compute",
-            srcPath, "-o", spvPath,
-            "--target-env=vulkan1.0",
-            "-Werror"
-        ]
-
+        cmd = [glslcPath, "-fshader-stage=compute", srcPath, "-o", spvPath, "--target-env=vulkan1.0"]
         print("\nglslc cmd:", cmd)
 
         subprocess.check_call(cmd)
@@ -88,18 +74,6 @@ def genCppH(hFilePath, cppFilePath, srcDirPath, glslcPath, tmpDirPath, env):
     with open(cppFilePath, "w") as f:
         f.write(cpp)
 
-
-def parse_arg_env(items):
-    d = {}
-    if items:
-        for item in items:
-            tokens = item.split("=")
-            key = tokens[0].strip()
-            value = tokens[1].strip()
-            d[key] = value
-    return d
-
-
 def main(argv):
     parser = argparse.ArgumentParser(description='')
     parser.add_argument(
@@ -114,7 +88,7 @@ def main(argv):
         help='')
     parser.add_argument(
         '-t',
-        '--tmp-dir-path',
+        '--tmp-spv-path',
         required=True,
         help='/tmp')
     parser.add_argument(
@@ -122,29 +96,20 @@ def main(argv):
         '--output-path',
         required=True,
         help='')
-    parser.add_argument(
-        "--env",
-        metavar="KEY=VALUE",
-        nargs='*',
-        help="Set a number of key-value pairs")
     options = parser.parse_args()
-    env = DEFAULT_ENV
-    for key, value in parse_arg_env(options.env).items():
-        env[key] = value
 
     if not os.path.exists(options.output_path):
         os.makedirs(options.output_path)
 
-    if not os.path.exists(options.tmp_dir_path):
-        os.makedirs(options.tmp_dir_path)
+    if not os.path.exists(options.tmp_spv_path):
+        os.makedirs(options.tmp_spv_path)
 
     genCppH(
         hFilePath=options.output_path + "/spv.h",
         cppFilePath=options.output_path + "/spv.cpp",
         srcDirPath=options.glsl_path,
         glslcPath=options.glslc_path,
-        tmpDirPath=options.tmp_dir_path,
-        env=env)
+        tmpDirPath=options.tmp_spv_path)
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))

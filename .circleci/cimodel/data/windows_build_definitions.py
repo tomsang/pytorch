@@ -124,7 +124,8 @@ def FalsePred(_):
 def TruePred(_):
     return True
 
-_VC2019 = VcSpec(2019)
+# MKLDNN compilation fails with VC-19.27
+_VC2019 = VcSpec(2019, ["14", "26"], hide_version=True)
 
 WORKFLOW_DATA = [
     # VS2019 CUDA-10.1

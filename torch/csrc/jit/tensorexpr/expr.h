@@ -36,8 +36,6 @@ enum IRNodeType {
   kPolynomial,
   kTerm,
   kRoundOff,
-  kMaxTerm,
-  kMinTerm,
   kNone,
   kExtra
 };

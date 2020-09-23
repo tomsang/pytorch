@@ -2,7 +2,6 @@
 
 #include <ATen/core/ivalue.h>
 #include <caffe2/serialize/inline_container.h>
-#include <torch/csrc/WindowsTorchApiMacro.h>
 #include <torch/csrc/jit/serialization/pickler.h>
 
 namespace torch {
@@ -18,7 +17,7 @@ using ObjLoader = std::function<
 // PickleOpCode::NEWOBJ, and the last_opcode_ member below that should be
 // deleted at some point, the Pickler doesn't produce it and it's only around to
 // support models saved before 1.1
-class TORCH_API Unpickler {
+class Unpickler {
   TH_DISALLOW_COPY_AND_ASSIGN(Unpickler);
 
  public:

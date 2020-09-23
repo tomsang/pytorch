@@ -388,38 +388,36 @@ std::shared_ptr<Operator> getOperatorForLiteral(const char* signature) {
 }
 
 std::string canonicalSchemaString(const FunctionSchema& schema) {
-  std::string out = schema.name();
-  out.push_back('(');
+  std::ostringstream out;
+
+  out << schema.name();
+  out << "(";
 
   bool seen_kwarg_only = false;
   for (size_t i = 0; i < schema.arguments().size(); ++i) {
-    if (i > 0) {
-      out += ", ";
-    }
+    if (i > 0)
+      out << ", ";
     if (schema.arguments()[i].kwarg_only() && !seen_kwarg_only) {
-      out += "*, ";
+      out << "*, ";
       seen_kwarg_only = true;
     }
     const auto& arg = schema.arguments()[i];
-    out += arg.type()->str();
-    out.push_back(' ');
-    out += arg.name();
+    out << arg.type()->str() << " " << arg.name();
   }
 
-  out += ") -> ";
+  out << ") -> ";
   if (schema.returns().size() == 1) {
-    out += schema.returns().at(0).type()->str();
+    out << schema.returns().at(0).type()->str();
   } else if (schema.returns().size() > 1) {
-    out.push_back('(');
+    out << "(";
     for (size_t i = 0; i < schema.returns().size(); ++i) {
-      if (i > 0) {
-        out += ", ";
-      }
-      out += schema.returns()[i].type()->str();
+      if (i > 0)
+        out << ", ";
+      out << schema.returns()[i].type()->str();
     }
-    out.push_back(')');
+    out << ")";
   }
-  return out;
+  return out.str();
 }
 
 } // namespace jit
